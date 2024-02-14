@@ -1,7 +1,6 @@
 package com.example.dna
 
 import android.os.Bundle
-import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.infiniteRepeatable
@@ -44,22 +43,14 @@ import io.github.sceneview.ar.arcore.createAnchorOrNull
 import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.node.AnchorNode
-import io.github.sceneview.environment.Environment
-import io.github.sceneview.gesture.RotateGestureDetector
 import io.github.sceneview.loaders.EnvironmentLoader
-import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
 import io.github.sceneview.model.ModelInstance
-import io.github.sceneview.model.isShadowCaster
-import io.github.sceneview.model.isShadowReceiver
-import io.github.sceneview.node.CubeNode
 import io.github.sceneview.node.ModelNode
-import io.github.sceneview.node.Node
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEngine
-import io.github.sceneview.rememberMaterialLoader
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNode
 import io.github.sceneview.rememberNodes
@@ -171,10 +162,9 @@ fun ARView(){
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val modelInstances = remember { mutableListOf<ModelInstance>() }
-    val model = modelLoader.createModelInstance("dna.glb")
     var frame by remember { mutableStateOf<Frame?>(null) }
     val childNodes = rememberNodes()
-    var view = rememberView(engine = engine)
+    val view = rememberView(engine = engine)
     ARScene(
         modifier = Modifier.fillMaxSize(),
         engine = engine,
@@ -190,7 +180,7 @@ fun ARView(){
             config.lightEstimationMode = Config.LightEstimationMode.DISABLED
             config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
         },
-        onSessionUpdated = { session, updatedFrame ->
+        onSessionUpdated = { _, updatedFrame ->
             frame = updatedFrame
 
             if (childNodes.isEmpty()) {
