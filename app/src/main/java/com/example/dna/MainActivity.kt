@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,25 +32,41 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.dna.ui.theme.DNATheme
+import com.google.android.filament.Engine
+import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
+import com.google.ar.core.Plane
 import io.github.sceneview.Scene
+import io.github.sceneview.animation.Transition.animateRotation
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.arcore.createAnchorOrNull
+import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.environment.Environment
 import io.github.sceneview.gesture.RotateGestureDetector
 import io.github.sceneview.loaders.EnvironmentLoader
+import io.github.sceneview.loaders.MaterialLoader
+import io.github.sceneview.loaders.ModelLoader
+import io.github.sceneview.math.Position
+import io.github.sceneview.math.Rotation
+import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.model.isShadowCaster
 import io.github.sceneview.model.isShadowReceiver
+import io.github.sceneview.node.CubeNode
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
+import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEngine
+import io.github.sceneview.rememberMaterialLoader
 import io.github.sceneview.rememberModelLoader
+import io.github.sceneview.rememberNode
 import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,6 +132,19 @@ fun ModelView() {
         val engine = rememberEngine()
         val modelLoader = rememberModelLoader(engine)
         val context = LocalContext.current
+        val cameraNode = rememberCameraNode(engine).apply {
+            position = Position(z = 4.0f)
+        }
+        val centerNode = rememberNode(engine)
+            .addChildNode(cameraNode)
+        val cameraTransition = rememberInfiniteTransition(label = "CameraTransition")
+        val cameraRotation by cameraTransition.animateRotation(
+            initialValue = Rotation(y = 0.0f),
+            targetValue = Rotation(y = 360.0f),
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 7.seconds.toInt(DurationUnit.MILLISECONDS))
+            )
+        )
         Scene(
             modifier = Modifier.fillMaxSize(),
 
@@ -125,6 +157,10 @@ fun ModelView() {
                 })
             },
             environmentLoader = EnvironmentLoader(engine, context),
+            onFrame = {
+                centerNode.rotation = cameraRotation
+                cameraNode.lookAt(centerNode)
+            }
         )
     }
 }
@@ -134,6 +170,7 @@ fun ModelView() {
 fun ARView(){
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
+    val modelInstances = remember { mutableListOf<ModelInstance>() }
     val model = modelLoader.createModelInstance("dna.glb")
     var frame by remember { mutableStateOf<Frame?>(null) }
     val childNodes = rememberNodes()
@@ -143,14 +180,7 @@ fun ARView(){
         engine = engine,
         view = view,
         modelLoader = modelLoader,
-        childNodes = rememberNodes{
-                                  add(ModelNode(model.apply {
-                                      isShadowReceiver = false
-                                  }).apply{
-                                      scaleToUnitCube(0.3f)
-
-                                  })
-        },
+        childNodes = childNodes,
         sessionConfiguration = { session, config ->
             config.depthMode =
                 when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
@@ -160,7 +190,43 @@ fun ARView(){
             config.lightEstimationMode = Config.LightEstimationMode.DISABLED
             config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
         },
-        planeRenderer = true,
+        onSessionUpdated = { session, updatedFrame ->
+            frame = updatedFrame
+
+            if (childNodes.isEmpty()) {
+                updatedFrame.getUpdatedPlanes()
+                    .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
+                    ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
+                        childNodes += createAnchorNode(
+                            engine = engine,
+                            modelLoader = modelLoader,
+                            modelInstances = modelInstances,
+                            anchor = anchor
+                        )
+                    }
+            }
+        },
+        planeRenderer = false,
+        onGestureListener = rememberOnGestureListener(
+            onSingleTapConfirmed = { motionEvent, node ->
+                if (node == null) {
+                    val hitResults = frame?.hitTest(motionEvent.x, motionEvent.y)
+                    hitResults?.firstOrNull {
+                        it.isValid(
+                            depthPoint = false,
+                            point = false
+                        )
+                    }?.createAnchorOrNull()
+                        ?.let { anchor ->
+                            childNodes += createAnchorNode(
+                                engine = engine,
+                                modelLoader = modelLoader,
+                                modelInstances = modelInstances,
+                                anchor = anchor
+                            )
+                        }
+                }
+            })
         /*onSessionUpdated = { session, updatedFrame ->
             frame = updatedFrame
         },
@@ -189,18 +255,36 @@ fun ARView(){
     )
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun createAnchorNode(
+    engine: Engine,
+    modelLoader: ModelLoader,
+    modelInstances: MutableList<ModelInstance>,
+    anchor: Anchor
+): AnchorNode {
+    val anchorNode = AnchorNode(engine = engine, anchor = anchor)
+    val modelNode = ModelNode(
+        modelInstance = modelInstances.apply {
+            if (isEmpty()) {
+                this += modelLoader.createInstancedModel("dna.glb", 10)
+            }
+        }.removeLast(),
+        // Scale to fit in a 0.5 meters cube
+        scaleToUnits = 0.5f
+    ).apply {
+        // Model Node needs to be editable for independent rotation from the anchor rotation
+        isShadowReceiver = false
+        isPositionEditable = false
+        isScaleEditable = true
+        isRotationEditable = true
+    }
+    anchorNode.addChildNode(modelNode)
+    return anchorNode
 }
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     DNATheme {
-        Greeting("Android")
+        HomeScreen(navController = rememberNavController())
     }
 }
