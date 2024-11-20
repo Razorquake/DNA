@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +31,15 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.example.dna.ui.nav.ARScreen
+import com.example.dna.ui.nav.AlphabetScreen
+import com.example.dna.ui.nav.HomeScreen
+import com.example.dna.ui.nav.QuizScreen
+import com.example.dna.ui.screen.ARScreen
+import com.example.dna.ui.screen.AlphabetScreen
+import com.example.dna.ui.screen.HomeScreen
+import com.example.dna.ui.screen.QuizScreen
 import com.example.dna.ui.theme.DNATheme
 import com.google.android.filament.Engine
 import com.google.ar.core.Anchor
@@ -83,34 +93,23 @@ enum class Screen {
 
 @Composable
 fun NavGraph() {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Screen.Home.name) {
-        composable(Screen.Home.name) {
-            HomeScreen(navController)
-        }
-        composable(Screen.ARView.name) {
-            ARView()
-        }
-    }
-}
-
-
-@Composable
-fun HomeScreen(navController: NavController){
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(text = "DNA", style = MaterialTheme.typography.titleLarge, modifier = Modifier
-            .padding(16.dp)
-            .align(
-                Alignment.CenterHorizontally
-            ), color = Color.White)
-        Text(text = "Deoxyribonucleic acid (abbreviated DNA) is the molecule that carries genetic information for the development and functioning of an organism. DNA is made of two linked strands that wind around each other to resemble a twisted ladder — a shape known as a double helix.", style = MaterialTheme.typography.bodyLarge, modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .align(
-                Alignment.CenterHorizontally
-            ), color = Color.White)
-        ModelView()
-        Button(onClick = {navController.navigate(Screen.ARView.name)}, modifier = Modifier.padding(16.dp)) {
-            Text(text = "Open in AR")
+    Scaffold(modifier = Modifier.fillMaxSize()) {
+        val inner = it
+        val navController = rememberNavController()
+        NavHost(navController = navController, startDestination = HomeScreen) {
+            composable<HomeScreen> {
+                HomeScreen(navController = navController)
+            }
+            composable<ARScreen> {
+                val alphabet = it.toRoute<ARScreen>().model
+                ARScreen(navController = navController, model = alphabet)
+            }
+            composable<AlphabetScreen> {
+                AlphabetScreen(navController = navController)
+            }
+            composable<QuizScreen> {
+                QuizScreen(navController = navController)
+            }
         }
     }
 }
