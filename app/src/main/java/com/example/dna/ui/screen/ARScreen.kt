@@ -2,12 +2,16 @@ package com.example.dna.ui.screen
 
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
-import com.example.dna.uil.Utils
+import com.example.dna.data.AppwriteModelLoader
+import com.example.dna.util.Utils
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.TrackingFailureReason
@@ -24,9 +28,31 @@ import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
+import java.io.File
 
 @Composable
 fun ARScreen(navController: NavController, model: String){
+    val context = LocalContext.current
+    val appwriteModelLoader = remember { AppwriteModelLoader(context) }
+    val modelFile = remember { mutableStateOf<File?>(null) }
+    val isLoading = remember { mutableStateOf(true) }
+
+    LaunchedEffect(model) {
+        isLoading.value = true
+        modelFile.value = appwriteModelLoader.downloadModel(Utils.getModelForAlphabet(model))
+        isLoading.value = false
+    }
+
+    if (isLoading.value) {
+        CircularProgressIndicator()
+        return
+    }
+
+    if (modelFile.value == null) {
+        // Show error state
+
+        return
+    }
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val materialLoader = rememberMaterialLoader(engine)
@@ -79,15 +105,17 @@ fun ARScreen(navController: NavController, model: String){
                             point = false
                         )
                     }?.createAnchorOrNull()?.let {
-                        val nodeModel = Utils.createAnchorNode(
-                            engine = engine,
-                            modelLoader = modelLoader,
-                            materialLoader = materialLoader,
-                            modelInstance = modelInstance,
-                            anchor = it,
-                            model = Utils.getModelForAlphabet(model)
-                        )
-                        childNodes += nodeModel
+                        modelFile.value?.let { file ->
+                            val nodeModel = Utils.createAnchorNode(
+                                engine = engine,
+                                modelLoader = modelLoader,
+                                materialLoader = materialLoader,
+                                modelInstance = modelInstance,
+                                anchor = it,
+                                model = file
+                            )
+                            childNodes += nodeModel
+                        }
                     }
                 }
             }

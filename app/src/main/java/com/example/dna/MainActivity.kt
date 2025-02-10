@@ -32,6 +32,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.example.dna.data.AppwriteModelLoader
 import com.example.dna.ui.nav.ARScreen
 import com.example.dna.ui.nav.AlphabetScreen
 import com.example.dna.ui.nav.HomeScreen
@@ -70,8 +71,10 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
 class MainActivity : ComponentActivity() {
+    private lateinit var appwriteModelLoader: AppwriteModelLoader
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        appwriteModelLoader = AppwriteModelLoader(this)
         setContent {
             DNATheme {
                 // A surface container using the 'background' color from the theme
@@ -84,11 +87,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
-enum class Screen {
-    Home,
-    ARView
+    override fun onDestroy() {
+        super.onDestroy()
+        appwriteModelLoader.cleanOldCacheFiles()
+    }
 }
 
 @Composable
@@ -256,7 +259,11 @@ fun createAnchorNode(
             if (isEmpty()) {
                 this += modelLoader.createInstancedModel("dna.glb", 10)
             }
-        }.removeLast(),
+        }.removeAt(modelInstances.apply {
+            if (isEmpty()) {
+                this += modelLoader.createInstancedModel("dna.glb", 10)
+            }
+        }.lastIndex),
         // Scale to fit in a 0.5 meters cube
         scaleToUnits = 0.5f
     ).apply {

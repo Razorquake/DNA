@@ -5,16 +5,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.dna.uil.Utils
+import com.example.dna.data.AppwriteModelLoader
+import com.example.dna.util.Utils
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Plane
@@ -30,9 +34,14 @@ import io.github.sceneview.rememberMaterialLoader
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberView
+import java.io.File
 
 @Composable
 fun QuizScreen(navController: NavController){
+    val context = LocalContext.current
+    val appwriteModelLoader = remember { AppwriteModelLoader(context) }
+    val modelFile = remember { mutableStateOf<File?>(null) }
+    val isLoading = remember { mutableStateOf(true) }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -41,6 +50,26 @@ fun QuizScreen(navController: NavController){
         }
         val model = remember {
             mutableStateOf(Utils.randomModel())
+        }
+
+        LaunchedEffect(model.value.second) {
+            isLoading.value = true
+            modelFile.value = appwriteModelLoader.downloadModel(model.value.second)
+            isLoading.value = false
+        }
+
+        if (isLoading.value) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+            return
+        }
+
+        if (modelFile.value == null) {
+            // Show error state
+            Text("Error loading model",
+                modifier = Modifier.align(Alignment.Center))
+            return
         }
 
         val engine = rememberEngine()
@@ -82,14 +111,16 @@ fun QuizScreen(navController: NavController){
                         it.type == Plane.Type.HORIZONTAL_UPWARD_FACING
                     }?.let {
                         it.createAnchorOrNull(it.centerPose)?.let {
-                            childNodes += Utils.createAnchorNode(
-                                engine = engine,
-                                modelLoader = modelLoader,
-                                materialLoader = materialLoader,
-                                modelInstance = modelInstance,
-                                anchor = it,
-                                model = model.value.second
-                            )
+                            modelFile.value?.let { file ->
+                                childNodes += Utils.createAnchorNode(
+                                    engine = engine,
+                                    modelLoader = modelLoader,
+                                    materialLoader = materialLoader,
+                                    modelInstance = modelInstance,
+                                    anchor = it,
+                                    model = file
+                                )
+                            }
                         }
                     }
                 }
@@ -119,7 +150,7 @@ fun QuizScreen(navController: NavController){
                 fontSize = 24.sp
             )
             Text(
-                "Score: ${score.value}",
+                "Score: ${score.intValue}",
                 modifier = Modifier.align(Alignment.TopCenter),
                 fontSize = 24.sp
             )
@@ -134,7 +165,7 @@ fun QuizScreen(navController: NavController){
             listOfAnswers.value.forEach {
                 AlphabetItem(alphabet = it, onClick =  {
                     if (it == model.value.first){
-                        score.value += 1
+                        score.intValue += 1
                         model.value = Utils.randomModel()
                         listOfAnswers.value = listOf(
                             model.value.first,
