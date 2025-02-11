@@ -1,4 +1,4 @@
-package com.example.dna
+package com.razorquake.dna
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,41 +7,35 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.dna.data.AppwriteModelLoader
-import com.example.dna.ui.nav.ARScreen
-import com.example.dna.ui.nav.AlphabetScreen
-import com.example.dna.ui.nav.HomeScreen
-import com.example.dna.ui.nav.QuizScreen
-import com.example.dna.ui.screen.ARScreen
-import com.example.dna.ui.screen.AlphabetScreen
-import com.example.dna.ui.screen.HomeScreen
-import com.example.dna.ui.screen.QuizScreen
-import com.example.dna.ui.theme.DNATheme
+import com.razorquake.dna.data.AppwriteModelLoader
+import com.razorquake.dna.ui.nav.ARScreen
+import com.razorquake.dna.ui.nav.AlphabetScreen
+import com.razorquake.dna.ui.nav.HomeScreen
+import com.razorquake.dna.ui.nav.QuizScreen
+import com.razorquake.dna.ui.screen.ARScreen
+import com.razorquake.dna.ui.screen.AlphabetScreen
+import com.razorquake.dna.ui.screen.HomeScreen
+import com.razorquake.dna.ui.screen.QuizScreen
+import com.razorquake.dna.ui.theme.DNATheme
 import com.google.android.filament.Engine
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
@@ -82,7 +76,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NavGraph()
+                    Scaffold(modifier = Modifier.fillMaxSize()) {
+                        NavGraph(modifier = Modifier.padding(it))
+                    }
                 }
             }
         }
@@ -95,33 +91,32 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NavGraph() {
-    Scaffold(modifier = Modifier.fillMaxSize()) {
-        val inner = it
-        val navController = rememberNavController()
-        NavHost(navController = navController, startDestination = HomeScreen) {
-            composable<HomeScreen> {
-                HomeScreen(navController = navController)
-            }
-            composable<ARScreen> {
-                val alphabet = it.toRoute<ARScreen>().model
-                ARScreen(navController = navController, model = alphabet)
-            }
-            composable<AlphabetScreen> {
-                AlphabetScreen(navController = navController)
-            }
-            composable<QuizScreen> {
-                QuizScreen(navController = navController)
-            }
+fun NavGraph(modifier: Modifier) {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = HomeScreen) {
+        composable<HomeScreen> {
+            HomeScreen(navController = navController)
+        }
+        composable<ARScreen> {
+            val alphabet = it.toRoute<ARScreen>().model
+            ARScreen(navController = navController, model = alphabet)
+        }
+        composable<AlphabetScreen> {
+            AlphabetScreen(navController = navController)
+        }
+        composable<QuizScreen> {
+            QuizScreen()
         }
     }
 }
 
 @Composable
 fun ModelView() {
-    Box(modifier = Modifier
-        .height(400.dp)
-        .padding(10.dp)){
+    Box(
+        modifier = Modifier
+            .height(400.dp)
+            .padding(10.dp)
+    ) {
         val engine = rememberEngine()
         val modelLoader = rememberModelLoader(engine)
         val context = LocalContext.current
@@ -160,7 +155,7 @@ fun ModelView() {
 
 
 @Composable
-fun ARView(){
+fun ARView() {
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val modelInstances = remember { mutableListOf<ModelInstance>() }

@@ -1,4 +1,4 @@
-package com.example.dna.ui.screen
+package com.razorquake.dna.ui.screen
 
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,8 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
-import com.example.dna.data.AppwriteModelLoader
-import com.example.dna.util.Utils
+import com.razorquake.dna.data.AppwriteModelLoader
+import com.razorquake.dna.util.Utils
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.TrackingFailureReason

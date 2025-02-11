@@ -1,4 +1,4 @@
-package com.example.dna.ui.nav
+package com.razorquake.dna.ui.nav
 
 import kotlinx.serialization.Serializable
 

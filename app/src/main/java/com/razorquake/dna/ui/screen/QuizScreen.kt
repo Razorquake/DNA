@@ -1,7 +1,8 @@
-package com.example.dna.ui.screen
+package com.razorquake.dna.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,9 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import com.example.dna.data.AppwriteModelLoader
-import com.example.dna.util.Utils
+import com.razorquake.dna.data.AppwriteModelLoader
+import com.razorquake.dna.util.Utils
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Plane
@@ -37,38 +37,33 @@ import io.github.sceneview.rememberView
 import java.io.File
 
 @Composable
-fun QuizScreen(navController: NavController){
+fun QuizScreen() {
     val context = LocalContext.current
     val appwriteModelLoader = remember { AppwriteModelLoader(context) }
     val modelFile = remember { mutableStateOf<File?>(null) }
     val isLoading = remember { mutableStateOf(true) }
+    val score = remember { mutableIntStateOf(0) }
+    val model = remember { mutableStateOf(Utils.randomModel()) }
+    val nextModel = remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    // Pre-fetch next model
+    LaunchedEffect(Unit) {
+        nextModel.value = Utils.randomModel()
+    }
+    LaunchedEffect(model.value.second) {
+        isLoading.value = true
+        modelFile.value = appwriteModelLoader.downloadModel(model.value.second)
+        isLoading.value = false
+    }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        val score = remember {
-            mutableIntStateOf(0)
-        }
-        val model = remember {
-            mutableStateOf(Utils.randomModel())
-        }
-
-        LaunchedEffect(model.value.second) {
-            isLoading.value = true
-            modelFile.value = appwriteModelLoader.downloadModel(model.value.second)
-            isLoading.value = false
-        }
-
-        if (isLoading.value) {
-            CircularProgressIndicator(
+        if (modelFile.value == null&&!isLoading.value) {
+            // Show error state
+            Text(
+                "Error loading model",
                 modifier = Modifier.align(Alignment.Center)
             )
-            return
-        }
-
-        if (modelFile.value == null) {
-            // Show error state
-            Text("Error loading model",
-                modifier = Modifier.align(Alignment.Center))
             return
         }
 
@@ -106,7 +101,7 @@ fun QuizScreen(navController: NavController){
             },
             onSessionUpdated = { _, updatedFrame ->
                 frame.value = updatedFrame
-                if (childNodes.isEmpty()){
+                if (childNodes.isEmpty()) {
                     updatedFrame.getUpdatedPlanes().firstOrNull {
                         it.type == Plane.Type.HORIZONTAL_UPWARD_FACING
                     }?.let {
@@ -126,7 +121,7 @@ fun QuizScreen(navController: NavController){
                 }
             },
             sessionConfiguration = { session, config ->
-                config.depthMode = when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)){
+                config.depthMode = when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                     true -> Config.DepthMode.AUTOMATIC
                     else -> Config.DepthMode.DISABLED
                 }
@@ -134,24 +129,25 @@ fun QuizScreen(navController: NavController){
             },
         )
         val listOfAnswers = remember {
-            mutableStateOf(listOf(
-                model.value.first,
-                Utils.alphabets.keys.random(),
-                Utils.alphabets.keys.random(),
-                Utils.alphabets.keys.random()
-            ).shuffled())
+            mutableStateOf(
+                listOf(
+                    model.value.first,
+                    Utils.alphabets.keys.random(),
+                    Utils.alphabets.keys.random(),
+                    Utils.alphabets.keys.random()
+                ).shuffled()
+            )
         }
-        Box(
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 "Quiz Screen",
-                modifier = Modifier.align(Alignment.Center),
                 fontSize = 24.sp
             )
             Text(
                 "Score: ${score.intValue}",
-                modifier = Modifier.align(Alignment.TopCenter),
                 fontSize = 24.sp
             )
         }
@@ -163,22 +159,35 @@ fun QuizScreen(navController: NavController){
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             listOfAnswers.value.forEach {
-                AlphabetItem(alphabet = it, onClick =  {
-                    if (it == model.value.first){
-                        score.intValue += 1
-                        model.value = Utils.randomModel()
-                        listOfAnswers.value = listOf(
-                            model.value.first,
-                            Utils.alphabets.keys.random(),
-                            Utils.alphabets.keys.random(),
-                            Utils.alphabets.keys.random()
-                        ).shuffled()
-                        childNodes.clear()
-                        modelInstance.clear()
-                        frame.value = null
+                AlphabetItem(
+                    enabled = !isLoading.value,
+                    alphabet = it,
+                    onClick = {
+                        if (it == model.value.first) {
+                            score.intValue += 1
+                            nextModel.value?.let { next ->
+                                model.value = next
+                                // Prepare next model immediately
+                                nextModel.value = Utils.randomModel()
+                            }
+                            listOfAnswers.value = listOf(
+                                model.value.first,
+                                Utils.alphabets.keys.random(),
+                                Utils.alphabets.keys.random(),
+                                Utils.alphabets.keys.random()
+                            ).shuffled()
+                            childNodes.clear()
+                            modelInstance.clear()
+                            frame.value = null
+                        }
                     }
-                })
+                )
             }
+        }
+        if (isLoading.value) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
 }

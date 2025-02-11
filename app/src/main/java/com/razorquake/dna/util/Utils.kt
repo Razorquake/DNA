@@ -1,4 +1,4 @@
-package com.example.dna.util
+package com.razorquake.dna.util
 
 import androidx.compose.ui.graphics.Color
 import com.google.android.filament.Engine

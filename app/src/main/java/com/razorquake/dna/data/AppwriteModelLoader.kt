@@ -1,7 +1,7 @@
-package com.example.dna.data
+package com.razorquake.dna.data
 
 import android.content.Context
-import com.example.dna.BuildConfig
+import com.razorquake.dna.BuildConfig
 import io.appwrite.Client
 import io.appwrite.services.Storage
 import kotlinx.coroutines.Dispatchers

@@ -1,4 +1,4 @@
-package com.example.dna
+package com.razorquake.dna
 
 import org.junit.Test
 

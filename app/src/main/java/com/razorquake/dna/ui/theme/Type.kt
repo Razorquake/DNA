@@ -1,4 +1,4 @@
-package com.example.dna.ui.theme
+package com.razorquake.dna.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

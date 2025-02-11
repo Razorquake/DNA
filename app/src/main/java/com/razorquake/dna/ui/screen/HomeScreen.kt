@@ -1,4 +1,4 @@
-package com.example.dna.ui.screen
+package com.razorquake.dna.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,8 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
-import com.example.dna.ui.nav.AlphabetScreen
-import com.example.dna.ui.nav.QuizScreen
+import com.razorquake.dna.ui.nav.AlphabetScreen
+import com.razorquake.dna.ui.nav.QuizScreen
 
 @Composable
 fun HomeScreen(navController: NavController){

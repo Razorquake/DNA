@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.dna"
+    namespace = "com.razorquake.dna"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.dna"
+        applicationId = "com.razorquake.dna"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
